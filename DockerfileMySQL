@@ -1,0 +1,43 @@
+# Grzegorz Bochniak
+# grupa nr 2 e-biznes informatyka stosowana 
+# FAIS UJ
+# Mysql server & client Dockerfile 
+#
+
+FROM ubuntu:16.04 
+
+RUN echo "mysql-server mysql-server/root_password password root" | debconf-set-selections
+RUN echo "mysql-server mysql-server/root_password_again password root" | debconf-set-selections
+
+RUN apt-get update && \
+	apt-get -y install mysql-server-5.7 && \
+	mkdir -p /var/lib/mysql && \
+	mkdir -p /var/run/mysqld && \
+	mkdir -p /var/log/mysql && \
+	chown -R mysql:mysql /var/lib/mysql && \
+	chown -R mysql:mysql /var/run/mysqld && \
+chown -R mysql:mysql /var/log/mysql
+
+RUN sed -i -e "$ a [client]\n\n[mysql]\n\n[mysqld]"  /etc/mysql/my.cnf && \
+	sed -i -e "s/\(\[client\]\)/\1\ndefault-character-set = utf8/g" /etc/mysql/my.cnf && \
+	sed -i -e "s/\(\[mysql\]\)/\1\ndefault-character-set = utf8/g" /etc/mysql/my.cnf && \
+sed -i -e "s/\(\[mysqld\]\)/\1\ninit_connect='SET NAMES utf8'\ncharacter-set-server = utf8\ncollation-server=utf8_unicode_ci\nbind-address = 0.0.0.0/g" /etc/mysql/my.cnf
+
+# uzytkownik admin z prawem logowania z zewnatrz
+# root ma prawo logowania tylko z localhost 
+RUN /usr/sbin/mysqld & \
+    sleep 10s &&\
+    echo "GRANT ALL ON *.* TO admin@'%' IDENTIFIED BY 'admin' WITH GRANT OPTION; FLUSH PRIVILEGES" | mysql -u root -proot
+
+EXPOSE 3306
+CMD ["/usr/bin/mysqld_safe"]
+
+# tworzymy container 
+#docker run --name=mysql -d -p 3306:3306 yrogb/mysql
+
+# uruchamiamy klienta w containerze
+#docker exec -it mysql mysql -u root -p
+
+# laczymy sie z baza klientem z hosta  
+# mysql -u admin -padmin --host=127.0.0.1
+
